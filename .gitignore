@@ -24,3 +24,7 @@ models/
 # Environment variables file
 .env
 
+# Testing files
+test_test_images/
+test_training_images/
+
