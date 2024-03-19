@@ -1,0 +1,12 @@
+numpy
+pandas
+matplotlib
+scipy
+opencv-python-headless
+redis
+scikit-learn
+streamlit
+streamlit-webrtc
+insightface
+onnxruntime
+jupyter

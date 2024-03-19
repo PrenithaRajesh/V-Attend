@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+
+# IDE files
+.vscode/
+
+# Compiled Python files
+*.pyc
+
+# Logs
+*.log
+
+# Model files
+models/
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment variables file
+.env
+
