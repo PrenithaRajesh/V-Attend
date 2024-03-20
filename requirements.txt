@@ -10,3 +10,4 @@ streamlit-webrtc
 insightface
 onnxruntime
 jupyter
+python-dotenv

@@ -28,3 +28,6 @@ models/
 test_test_images/
 test_training_images/
 test_notebooks/
+
+# Temporarily generated embedding files
+face_embedding.txt
