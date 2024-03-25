@@ -46,7 +46,7 @@ def signup():
 
 def main():
     st.set_page_config(page_title='v-attend | authentication')  # Moved here
-    st.title("Authentication App")
+    st.title("Authentication Page")
 
     if "logged_in" not in state:
         state.logged_in = False
