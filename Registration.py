@@ -1,8 +1,13 @@
+# register.py
+import streamlit as st
 import cv2
 import numpy as np
 import redis
 import os
 from dotenv import load_dotenv
+from insightface.app import FaceAnalysis
+from streamlit_webrtc import webrtc_streamer
+import av
 
 load_dotenv()
 
@@ -12,11 +17,9 @@ password = os.getenv('REDIS_PASSWORD')
 
 r = redis.StrictRedis(host=hostname, port=portnumber, password=password)
 
-from insightface.app import FaceAnalysis
-faceapp = FaceAnalysis(name='buffalo_l',root='./models',providers=['CPUExecutionProvider'])
+faceapp = FaceAnalysis(name='buffalo_l', root='./models', providers=['CPUExecutionProvider'])
 faceapp.prepare(ctx_id=0, det_size=(640, 640))
 
-# Registration Form
 class RegistrationForm:
     def __init__(self):
         self.sample = 0
@@ -58,3 +61,34 @@ class RegistrationForm:
         self.reset()
         return True
 
+def register():
+    # st.set_page_config() moved to auth.py
+    st.header('Student Registration Form')
+
+    registration_form = RegistrationForm()
+
+    # form
+    sname = st.text_input(label='Name',placeholder='Full Name')
+    regNo = st.text_input(label='RegNo', placeholder="Registration Number")
+
+    def video_callback_func(frame):
+        img = frame.to_ndarray(format='bgr24') # 3d array bgr
+        reg_img, embedding = registration_form.get_embedding(img)
+        if embedding is not None:
+            with open('face_embedding.txt', mode='ab') as f:
+                np.savetxt(f, embedding)
+        return av.VideoFrame.from_ndarray(reg_img, format='bgr24')
+
+    webrtc_streamer(key='registration', video_frame_callback=video_callback_func)
+
+    if st.button('Submit'):
+        return_val = registration_form.save_data_in_redis_db(sname, regNo)
+        if return_val == True:
+            st.success(f"{regNo} registered successfully")
+        elif return_val == 'name_false':
+            st.error('Please enter the name: Name cannot be empty or spaces')
+        elif return_val == 'file_false':
+            st.error('face_embedding.txt is not found. Please refresh the page and execute again.')
+
+if __name__ == "__main__":
+    register()
