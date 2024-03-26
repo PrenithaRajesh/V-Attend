@@ -61,8 +61,11 @@ class RegistrationForm:
         self.reset()
         return True
 
-def register():
-    # st.set_page_config() moved to auth.py
+def register(logged_in):
+    if not logged_in:
+        st.error("You need to log in to access this page.")
+        return
+
     st.header('Student Registration Form')
 
     registration_form = RegistrationForm()
@@ -91,4 +94,5 @@ def register():
             st.error('face_embedding.txt is not found. Please refresh the page and execute again.')
 
 if __name__ == "__main__":
-    register()
+    logged_in = st.session_state.get("logged_in", False)
+    register(logged_in)

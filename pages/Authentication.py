@@ -4,7 +4,7 @@ from streamlit import session_state as state
 import os
 from dotenv import load_dotenv
 import redis
-from Registration import register
+from pages.Registration import register
 
 load_dotenv()
 
@@ -45,23 +45,24 @@ def signup():
             st.error(result)
 
 def main():
-    st.set_page_config(page_title='v-attend | authentication')  # Moved here
+    st.set_page_config(page_title='v-attend | authentication')  
     st.title("Authentication Page")
 
-    if "logged_in" not in state:
-        state.logged_in = False
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
 
-    if state.logged_in:
-        register()
+    if st.session_state.logged_in:
+        register(st.session_state.logged_in)  
     else:
         st.subheader("Login")
         username = st.text_input("Username")
         password = st.text_input("Password", type='password')
         if st.button("Login"):
+            
             if authenticate_user(username, password):
                 st.success("Logged in as {}".format(username))
-                state.logged_in = True
-                register()
+                st.session_state.logged_in = True
+                register(st.session_state.logged_in)  
             else:
                 st.error("Invalid username or password")
 
