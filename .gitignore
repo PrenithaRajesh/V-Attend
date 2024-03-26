@@ -31,3 +31,7 @@ test_notebooks/
 
 # Temporarily generated embedding files
 face_embedding.txt
+
+.ipynb_checkpoints/
+```
+*.ipynb
