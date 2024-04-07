@@ -104,8 +104,9 @@ def register():
         elif return_val == 'file_false':
             st.error('face_embedding.txt is not found. Please refresh the page and execute again.')
 
+# Prediction
 def ml_search_algorithm(dataframe,feature_column,test_vector,
-                        name_regNo=['Name','RegNo'],thresh=0.5):
+                        name_regNo=['RegNo','Name'],thresh=0.5):
     dataframe = dataframe.copy()
     X_list = dataframe[feature_column].tolist()
     x = np.asarray(X_list)
@@ -118,7 +119,7 @@ def ml_search_algorithm(dataframe,feature_column,test_vector,
     if len(data_filter) > 0:
         data_filter.reset_index(drop=True,inplace=True)
         argmax = data_filter['cosine'].argmax()
-        person_name, person_regNo = data_filter.loc[argmax][name_regNo]
+        person_regNo, person_name = data_filter.loc[argmax][name_regNo]
         
     else:
         person_name = 'Unknown'
@@ -129,10 +130,10 @@ def ml_search_algorithm(dataframe,feature_column,test_vector,
 # saving logs every minute
 class RealTimePred:
     def __init__(self):
-        self.logs = dict(name=[],regNo=[],current_time=[])
+        self.logs = dict(regNo=[],name=[],current_time=[])
         
     def reset_dict(self):
-        self.logs = dict(name=[],regNo=[],current_time=[])
+        self.logs = dict(regNo=[],name=[],current_time=[])
         
     def saveLogs_redis(self):
         dataframe = pd.DataFrame(self.logs)        
@@ -143,7 +144,7 @@ class RealTimePred:
         encoded_data = []
         for name, regNo, ctime in zip(name_list, regNo_list, ctime_list):
             if name != 'Unknown':
-                concat_string = f"{name}@{regNo}@{ctime}"
+                concat_string = f"{regNo}@{name}@{ctime}"
                 encoded_data.append(concat_string)
                 
         if len(encoded_data) >0:
@@ -154,7 +155,7 @@ class RealTimePred:
         
         
     def face_prediction(self,test_image, dataframe,feature_column,
-                            name_regNo=['Name','RegNo'],thresh=0.5):
+                            name_regNo=['RegNo','Name'],thresh=0.5):
         current_time = str(datetime.now())
         
         results = faceapp.get(test_image)
@@ -179,8 +180,8 @@ class RealTimePred:
             cv2.putText(test_copy,text_gen,(x1,y1),cv2.FONT_HERSHEY_DUPLEX,0.7,color,2)
             cv2.putText(test_copy,current_time,(x1,y2+10),cv2.FONT_HERSHEY_DUPLEX,0.7,color,2)
             
-            self.logs['name'].append(person_name)
             self.logs['regNo'].append(person_regNo)
+            self.logs['name'].append(person_name)
             self.logs['current_time'].append(current_time)
             
 
