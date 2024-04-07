@@ -32,8 +32,9 @@ def retrive_data(name):
     index = list(map(lambda x: x.decode(), index))
     retrive_series.index = index
     retrive_df =  retrive_series.to_frame().reset_index()
-    retrive_df.columns = ['regNo','facial_features']
-    return retrive_df[['regNo','facial_features']]
+    retrive_df.columns = ['name_regNo','facial_features']
+    retrive_df[['RegNo','Name']] = retrive_df['name_regNo'].apply(lambda x: x.split('@')).apply(pd.Series)
+    return retrive_df[['RegNo','Name','facial_features']]
 
 # Registration Form
 class RegistrationForm:
@@ -56,13 +57,13 @@ class RegistrationForm:
         return frame, embeddings
 
     def save_data_in_redis_db(self, name, regNo):
-        if name is not None and name.strip() != '':
-            key = regNo
+        if name is not None:
+            if name.strip() != '':
+                key = f'{regNo}@{name}'
+            else:
+                return 'name_false'
         else:
             return 'name_false'
-
-        if 'face_embedding.txt' not in os.listdir():
-            return 'file_false'
 
         x_array = np.loadtxt('face_embedding.txt', dtype=np.float32)
 
@@ -78,9 +79,6 @@ class RegistrationForm:
         return True
 
 def register():
-    # st.set_page_config() moved to auth.py
-    st.header('Student Registration Form')
-
     registration_form = RegistrationForm()
 
     # form

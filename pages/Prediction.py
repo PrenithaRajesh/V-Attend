@@ -5,7 +5,7 @@ import av
 import time
 import cv2
 
-st.subheader('Real-Time Attendance System')
+st.subheader('Predictions')
 
 with st.spinner('Retrieving Data from Redis DB ...'):    
     redis_face_db = face_rec.retrive_data(name='vattend:register')

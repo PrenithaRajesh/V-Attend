@@ -3,6 +3,9 @@ import os
 from dotenv import load_dotenv
 from insightface.app import FaceAnalysis
 from app import register
+import streamlit as st
+
+st.subheader('Registration Form')
 
 load_dotenv()
 
