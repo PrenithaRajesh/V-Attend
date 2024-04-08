@@ -154,8 +154,7 @@ class RealTimePred:
         self.reset_dict()     
         
         
-    def face_prediction(self,test_image, dataframe,feature_column,
-                            name_regNo=['RegNo','Name'],thresh=0.5):
+    def face_prediction(self, test_image, dataframe, feature_column, name_regNo=['RegNo','Name'], thresh=0.5):
         current_time = str(datetime.now())
         
         results = faceapp.get(test_image)
@@ -164,11 +163,8 @@ class RealTimePred:
         for res in results:
             x1, y1, x2, y2 = res['bbox'].astype(int)
             embeddings = res['embedding']
-            person_name, person_regNo = ml_search_algorithm(dataframe,
-                                                        feature_column,
-                                                        test_vector=embeddings,
-                                                        name_regNo=name_regNo,
-                                                        thresh=thresh)
+            person_name, person_regNo = ml_search_algorithm(dataframe, feature_column, test_vector=embeddings, name_regNo=name_regNo, thresh=thresh)
+            
             if person_name == 'Unknown':
                 color =(0,0,255) # bgr
             else:
@@ -176,14 +172,16 @@ class RealTimePred:
 
             cv2.rectangle(test_copy,(x1,y1),(x2,y2),color)
 
-            text_gen = person_name
-            cv2.putText(test_copy,text_gen,(x1,y1),cv2.FONT_HERSHEY_DUPLEX,0.7,color,2)
-            cv2.putText(test_copy,current_time,(x1,y2+10),cv2.FONT_HERSHEY_DUPLEX,0.7,color,2)
+            # Display name and regno
+            text_name = f"Name: {person_name}"
+            text_regno = f"Reg No: {person_regNo}"
+            cv2.putText(test_copy, text_name, (x1, y1 - 20), cv2.FONT_HERSHEY_DUPLEX, 0.7, color, 2)
+            cv2.putText(test_copy, text_regno, (x1, y1 - 50), cv2.FONT_HERSHEY_DUPLEX, 0.7, color, 2)
+
+            cv2.putText(test_copy, current_time, (x1, y2 + 10), cv2.FONT_HERSHEY_DUPLEX, 0.7, color, 2)
             
             self.logs['regNo'].append(person_regNo)
             self.logs['name'].append(person_name)
             self.logs['current_time'].append(current_time)
-            
 
         return test_copy
-
