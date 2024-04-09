@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import streamlit as st
 
 from sklearn.metrics import pairwise
-from datetime import datetime
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -130,14 +130,14 @@ def ml_search_algorithm(dataframe,feature_column,test_vector,
 # saving logs every minute
 class RealTimePred:
     def __init__(self):
-        self.logs = dict(regNo=[],name=[],current_time=[])
-        
+        self.logs = dict(regNo=[], name=[], current_time=[])
+
     def reset_dict(self):
-        self.logs = dict(regNo=[],name=[],current_time=[])
-        
+        self.logs = dict(regNo=[], name=[], current_time=[])
+
     def saveLogs_redis(self):
-        dataframe = pd.DataFrame(self.logs)        
-        dataframe.drop_duplicates('name',inplace=True) 
+        dataframe = pd.DataFrame(self.logs)
+        dataframe.drop_duplicates('name', inplace=True)
         name_list = dataframe['name'].tolist()
         regNo_list = dataframe['regNo'].tolist()
         ctime_list = dataframe['current_time'].tolist()
@@ -146,31 +146,49 @@ class RealTimePred:
             if name != 'Unknown':
                 concat_string = f"{regNo}@{name}@{ctime}"
                 encoded_data.append(concat_string)
+
+        if len(encoded_data) > 0:
+            r.lpush('vattend:logs', *encoded_data)
+
+        self.reset_dict()
+
+    def mark_attendance(self):
+        # Get the logs from the database
+        logs = r.lrange('vattend:logs', 0, -1)
+        
+        # Get the current time
+        current_time = datetime.now()
+        # Set the cutoff time
+        cutoff_time = datetime(current_time.year, current_time.month, current_time.day, 22, 0, 0)
+
+        # Iterate through logs and mark attendance
+        for log in logs:
+            log_str = log.decode('utf-8')
+            regNo, name, log_time_str = log_str.split('@')
+            log_time = datetime.strptime(log_time_str, '%Y-%m-%d %H:%M:%S.%f')
+            if log_time <= cutoff_time:
+                r.hset('vattend:status', f'{regNo}@{name}', 'present')
+            else:
+                r.hset('vattend:status', f'{regNo}@{name}', 'absent')
                 
-        if len(encoded_data) >0:
-            r.lpush('vattend:logs',*encoded_data)
-        
-                    
-        self.reset_dict()     
-        
-        
-    def face_prediction(self, test_image, dataframe, feature_column, name_regNo=['RegNo','Name'], thresh=0.5):
+    def face_prediction(self, test_image, dataframe, feature_column, name_regNo=['RegNo', 'Name'], thresh=0.5):
         current_time = str(datetime.now())
-        
+
         results = faceapp.get(test_image)
         test_copy = test_image.copy()
 
         for res in results:
             x1, y1, x2, y2 = res['bbox'].astype(int)
             embeddings = res['embedding']
-            person_name, person_regNo = ml_search_algorithm(dataframe, feature_column, test_vector=embeddings, name_regNo=name_regNo, thresh=thresh)
-            
-            if person_name == 'Unknown':
-                color =(0,0,255) # bgr
-            else:
-                color = (0,255,0)
+            person_name, person_regNo = ml_search_algorithm(dataframe, feature_column, test_vector=embeddings,
+                                                            name_regNo=name_regNo, thresh=thresh)
 
-            cv2.rectangle(test_copy,(x1,y1),(x2,y2),color)
+            if person_name == 'Unknown':
+                color = (0, 0, 255)  # bgr
+            else:
+                color = (0, 255, 0)
+
+            cv2.rectangle(test_copy, (x1, y1), (x2, y2), color)
 
             # Display name and regno
             text_name = f"Name: {person_name}"
@@ -179,9 +197,12 @@ class RealTimePred:
             cv2.putText(test_copy, text_regno, (x1, y1 - 50), cv2.FONT_HERSHEY_DUPLEX, 0.7, color, 2)
 
             cv2.putText(test_copy, current_time, (x1, y2 + 10), cv2.FONT_HERSHEY_DUPLEX, 0.7, color, 2)
-            
+
             self.logs['regNo'].append(person_regNo)
             self.logs['name'].append(person_name)
             self.logs['current_time'].append(current_time)
+
+        # Call method to mark attendance
+        self.mark_attendance()
 
         return test_copy
