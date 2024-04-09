@@ -226,11 +226,42 @@ def mark_attendance():
             r.hset('vattend:status', f'{regNo}@{name}', 'present')
 
 
-def retrieve_status(name):
-    status_dict = r.hgetall(name)
+def retrieve_status():
+    registered_keys = r.hkeys('vattend:register')
     status_list = []
-    for key, value in status_dict.items():
+    
+    last_times = {}
+    
+    incoming_logs = r.lrange('vattend:incoming', 0, -1)
+    for log in incoming_logs:
+        log_str = log.decode('utf-8')
+        regNo, name, log_time_str = log_str.split('@')
+        
+        log_time_str = log_time_str.split('.')[0]
+        log_time = datetime.strptime(log_time_str, '%Y-%m-%d %H:%M:%S')
+        last_times[(regNo, name)] = {'in_time': log_time}
+
+    outgoing_logs = r.lrange('vattend:outgoing', 0, -1)
+    for log in outgoing_logs:
+        log_str = log.decode('utf-8')
+        regNo, name, log_time_str = log_str.split('@')
+        log_time_str = log_time_str.split('.')[0]
+        log_time = datetime.strptime(log_time_str, '%Y-%m-%d %H:%M:%S')
+        if (regNo, name) in last_times:
+            last_times[(regNo, name)]['out_time'] = log_time
+        else:
+            last_times[(regNo, name)] = {'out_time': log_time}
+
+    for key in registered_keys:
         regNo_name = key.decode('utf-8')
-        status = value.decode('utf-8')
-        status_list.append({'RegNo@Name': regNo_name, 'Status': status})
+        regNo, name = regNo_name.split('@')
+        
+        times = last_times.get((regNo, name), {})
+        last_in_time = times.get('in_time', '-')
+        last_out_time = times.get('out_time', '-')
+        
+        status_dict = r.hgetall('vattend:status')
+        status = status_dict.get(regNo_name.encode(), b'').decode()
+        status_list.append({'RegNo@Name': regNo_name, 'Last In-Time': last_in_time, 'Last Out-Time': last_out_time, 'Status': status})
+    
     return status_list

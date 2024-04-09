@@ -11,7 +11,7 @@ if st.button('Generate Reports'):
     st.success('Attendance calculated successfully!')
 
     with st.spinner('Retrieving Data from Redis DB ...'):    
-        vattend_status = face_rec.retrieve_status(name='vattend:status')
+        vattend_status = face_rec.retrieve_status()
         st.dataframe(vattend_status)
 
 
