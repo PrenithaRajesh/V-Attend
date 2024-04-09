@@ -1,7 +1,14 @@
 import streamlit as st 
 from Home import app as face_rec
 from streamlit_webrtc import webrtc_streamer
+from twilio.rest import Client
 import av
+import os
+
+account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+client = Client(account_sid, auth_token)
+token = client.tokens.create()
 
 st.subheader('Exit Camera')
 
@@ -24,4 +31,4 @@ def video_frame_callback(frame):
     
     return av.VideoFrame.from_ndarray(pred_img, format="bgr24")
 
-webrtc_streamer(key="realtimePrediction", video_frame_callback=video_frame_callback)
+webrtc_streamer(key="realtimePrediction", rtc_configuration={"iceServers": token.ice_servers}, video_frame_callback=video_frame_callback)

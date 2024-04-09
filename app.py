@@ -4,6 +4,7 @@ import pandas as pd
 import redis
 import os
 from streamlit_webrtc import webrtc_streamer
+from twilio.rest import Client
 import av
 from dotenv import load_dotenv
 import streamlit as st
@@ -16,6 +17,12 @@ load_dotenv()
 hostname = os.getenv('REDIS_HOST')
 portnumber = os.getenv('REDIS_PORT')
 password = os.getenv('REDIS_PASSWORD')
+
+account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+client = Client(account_sid, auth_token)
+
+token = client.tokens.create()
 
 r = redis.StrictRedis(host=hostname, port=portnumber, password=password)
 
@@ -90,7 +97,7 @@ def register():
         reg_img, embedding = registration_form.get_embedding(img)
         return av.VideoFrame.from_ndarray(reg_img, format='bgr24')
 
-    webrtc_streamer(key='registration', video_frame_callback=video_callback_func)
+    webrtc_streamer(key='registration', rtc_configuration={"iceServers": token.ice_servers}, video_frame_callback=video_callback_func)
 
     if st.button('Submit'):
         return_val = registration_form.save_data_in_redis_db(sname, regNo)
