@@ -43,6 +43,11 @@ def retrive_data(name):
     retrive_df[['RegNo','Name']] = retrive_df['name_regNo'].apply(lambda x: x.split('@')).apply(pd.Series)
     return retrive_df[['RegNo','Name','facial_features']]
 
+def convert_utc_to_ist(utc_datetime):
+    ist_offset = timedelta(hours=5, minutes=30)
+    ist_datetime = utc_datetime + ist_offset
+    return ist_datetime
+
 embeddings_list = []
 
 # Registration Form
@@ -158,7 +163,7 @@ class RealTimePred:
         self.reset_dict()
                 
     def face_prediction(self, test_image, dataframe, feature_column, name_regNo=['RegNo', 'Name'], thresh=0.5):
-        current_time = str(datetime.now())
+        current_time = str(convert_utc_to_ist(datetime.now()))
 
         results = faceapp.get(test_image)
         test_copy = test_image.copy()
