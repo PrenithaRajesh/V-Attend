@@ -128,9 +128,9 @@ def ml_search_algorithm(dataframe,feature_column,test_vector,
     return person_name, person_regNo
 
 # saving logs every minute
-# saving logs every minute
 class RealTimePred:
-    def __init__(self):
+    def __init__(self, camera):
+        self.camera = camera
         self.logs = dict(regNo=[], name=[], current_time=[])
 
     def reset_dict(self):
@@ -149,7 +149,7 @@ class RealTimePred:
                 encoded_data.append(concat_string)
 
         if len(encoded_data) > 0:
-            r.lpush('vattend:logs', *encoded_data)
+            r.lpush(f'vattend:{self.camera}', *encoded_data)
 
         self.reset_dict()
 

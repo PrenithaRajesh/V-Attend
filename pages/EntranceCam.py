@@ -11,7 +11,8 @@ with st.spinner('Retrieving Data from Redis DB ...'):
 st.success("Data sucessfully retrived from Redis")
 
 # Create an instance of RealTimePred class
-real_time_pred = face_rec.RealTimePred()
+real_time_pred = face_rec.RealTimePred(camera='incoming')
+
 
 def video_frame_callback(frame):
     global setTime
