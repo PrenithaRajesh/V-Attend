@@ -7,5 +7,5 @@ st.header('Welcome to V-Attend')
 
 st.write('A simple attendance management system that allows you to easily manage your attendance.')
 
-# with st.spinner("Loading... "):
-#     import app
+with st.spinner("Loading... "):
+    import app
