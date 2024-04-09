@@ -275,7 +275,12 @@ def retrieve_status(status_filter=None):
 
         status_dict = r.hgetall('vattend:status')
         status = status_dict.get(regNo_name.encode(), b'').decode()
-        status_list.append({'RegNo@Name': regNo_name, 'Last In-Time': last_in_time, 'Last Out-Time': last_out_time, 'Status': status})
+
+        if status_filter:
+            if status!=status_filter:
+                continue
+        
+        status_list.append({'RegNo': regNo, 'Name':name, 'Last In-Time': last_in_time, 'Last Out-Time': last_out_time, 'Status': status})
 
     return status_list
 

@@ -12,10 +12,10 @@ token = client.tokens.create()
 
 st.subheader('Exit Camera')
 
-with st.spinner('Retrieving Data from Redis DB ...'):    
+with st.spinner('Retrieving Data ...'):    
     redis_face_db = face_rec.retrive_data(name='vattend:register')
 
-st.success("Data sucessfully retrived from Redis")
+st.success("Data sucessfully retrived")
 
 # Create an instance of RealTimePred class
 real_time_pred = face_rec.RealTimePred(camera='outgoing')

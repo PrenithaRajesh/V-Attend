@@ -6,10 +6,11 @@ st.subheader('Reports')
 def mark_and_retrieve_status(status_filter):
     with st.spinner('Calculating attendance...'):
         face_rec.mark_attendance()
-        st.success('Attendance calculated successfully!')
+        st.success('Reports fetched')
 
     with st.spinner('Retrieving Data from Redis DB ...'):    
         vattend_status = face_rec.retrieve_status(status_filter=status_filter)
+        st.write(f"Total: {len(vattend_status)}")
         st.dataframe(vattend_status)
 
 filter_option = st.selectbox('Filter Option', ['All', 'Present', 'Absent', 'On Leave'])
