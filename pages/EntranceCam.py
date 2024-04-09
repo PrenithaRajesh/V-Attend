@@ -3,7 +3,7 @@ from Home import app as face_rec
 from streamlit_webrtc import webrtc_streamer
 import av
 
-st.subheader('Predictions')
+st.subheader('Enterance Camera')
 
 with st.spinner('Retrieving Data from Redis DB ...'):    
     redis_face_db = face_rec.retrive_data(name='vattend:register')
