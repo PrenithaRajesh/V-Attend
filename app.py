@@ -259,20 +259,14 @@ def retrieve_status(status_filter=None):
         regNo, name = regNo_name.split('@')
         
         times = last_times.get((regNo, name), {})
-        last_in_time = times.get('in_time', '-')
-        last_out_time = times.get('out_time', '-')
+        last_in_time = str(times.get('in_time', '-'))  # Convert to string
+        last_out_time = str(times.get('out_time', '-'))  # Convert to string
 
         status_dict = r.hgetall('vattend:status')
         status = status_dict.get(regNo_name.encode(), b'').decode()
-        
-        if status_filter:
-            if status != status_filter:
-                continue
-
         status_list.append({'RegNo@Name': regNo_name, 'Last In-Time': last_in_time, 'Last Out-Time': last_out_time, 'Status': status})
 
     return status_list
-
 
 def mark_on_leave():
     leave_reg_numbers = r.lrange('vattend:onLeave', 0, -1)
