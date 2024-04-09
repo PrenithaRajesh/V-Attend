@@ -226,7 +226,7 @@ def mark_attendance():
             r.hset('vattend:status', f'{regNo}@{name}', 'present')
 
 
-def retrieve_status():
+def retrieve_status(status_filter=None):
     registered_keys = r.hkeys('vattend:register')
     status_list = []
     
@@ -264,16 +264,21 @@ def retrieve_status():
 
         status_dict = r.hgetall('vattend:status')
         status = status_dict.get(regNo_name.encode(), b'').decode()
+        
+        if status_filter:
+            if status != status_filter:
+                continue
+
         status_list.append({'RegNo@Name': regNo_name, 'Last In-Time': last_in_time, 'Last Out-Time': last_out_time, 'Status': status})
 
     return status_list
+
 
 def mark_on_leave():
     leave_reg_numbers = r.lrange('vattend:onLeave', 0, -1)
     leave_reg_numbers = [reg.decode('utf-8') for reg in leave_reg_numbers]
 
     for reg_number in leave_reg_numbers:
-        print(reg_number)
         status_key = next((key.decode('utf-8') for key in r.hkeys('vattend:status') if key.decode('utf-8').startswith(reg_number)), None)
         if status_key:
             r.hset('vattend:status', status_key, 'onLeave')
