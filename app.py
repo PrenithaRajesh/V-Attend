@@ -128,6 +128,7 @@ def ml_search_algorithm(dataframe,feature_column,test_vector,
     return person_name, person_regNo
 
 # saving logs every minute
+# saving logs every minute
 class RealTimePred:
     def __init__(self):
         self.logs = dict(regNo=[], name=[], current_time=[])
@@ -161,6 +162,10 @@ class RealTimePred:
         # Set the cutoff time
         cutoff_time = datetime(current_time.year, current_time.month, current_time.day, 22, 0, 0)
 
+        # Get the list of registered persons
+        registered_keys = r.hkeys('vattend:register')
+        registered_persons = [key.decode('utf-8') for key in registered_keys]
+
         # Iterate through logs and mark attendance
         for log in logs:
             log_str = log.decode('utf-8')
@@ -169,6 +174,18 @@ class RealTimePred:
             if log_time <= cutoff_time:
                 r.hset('vattend:status', f'{regNo}@{name}', 'present')
             else:
+                r.hset('vattend:status', f'{regNo}@{name}', 'absent')
+
+        # Mark registered persons who are not in logs or last timestamp > 10pm as absent
+        for person_key in registered_persons:
+            regNo, name = person_key.split('@')
+            last_log_time = None
+            for log in logs:
+                log_str = log.decode('utf-8')
+                log_regNo, log_name, log_time_str = log_str.split('@')
+                if log_regNo == regNo and log_name == name:
+                    last_log_time = datetime.strptime(log_time_str, '%Y-%m-%d %H:%M:%S.%f')
+            if last_log_time is None or last_log_time > cutoff_time:
                 r.hset('vattend:status', f'{regNo}@{name}', 'absent')
                 
     def face_prediction(self, test_image, dataframe, feature_column, name_regNo=['RegNo', 'Name'], thresh=0.5):
