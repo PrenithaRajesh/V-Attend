@@ -252,6 +252,8 @@ def retrieve_status():
         else:
             last_times[(regNo, name)] = {'out_time': log_time}
 
+    mark_on_leave()
+    
     for key in registered_keys:
         regNo_name = key.decode('utf-8')
         regNo, name = regNo_name.split('@')
@@ -259,9 +261,19 @@ def retrieve_status():
         times = last_times.get((regNo, name), {})
         last_in_time = times.get('in_time', '-')
         last_out_time = times.get('out_time', '-')
-        
+
         status_dict = r.hgetall('vattend:status')
         status = status_dict.get(regNo_name.encode(), b'').decode()
         status_list.append({'RegNo@Name': regNo_name, 'Last In-Time': last_in_time, 'Last Out-Time': last_out_time, 'Status': status})
-    
+
     return status_list
+
+def mark_on_leave():
+    leave_reg_numbers = r.lrange('vattend:onLeave', 0, -1)
+    leave_reg_numbers = [reg.decode('utf-8') for reg in leave_reg_numbers]
+
+    for reg_number in leave_reg_numbers:
+        print(reg_number)
+        status_key = next((key.decode('utf-8') for key in r.hkeys('vattend:status') if key.decode('utf-8').startswith(reg_number)), None)
+        if status_key:
+            r.hset('vattend:status', status_key, 'onLeave')
