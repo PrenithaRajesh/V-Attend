@@ -36,6 +36,8 @@ def retrive_data(name):
     retrive_df[['RegNo','Name']] = retrive_df['name_regNo'].apply(lambda x: x.split('@')).apply(pd.Series)
     return retrive_df[['RegNo','Name','facial_features']]
 
+embeddings_list = []
+
 # Registration Form
 class RegistrationForm:
     def __init__(self):
@@ -54,6 +56,7 @@ class RegistrationForm:
             text = f"samples = {self.sample}"
             cv2.putText(frame, text, (x1, y1), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 0), 2)
             embeddings = res['embedding']
+            embeddings_list.append(embeddings)  # Add to global list
         return frame, embeddings
 
     def save_data_in_redis_db(self, name, regNo):
@@ -65,18 +68,15 @@ class RegistrationForm:
         else:
             return 'name_false'
 
-        x_array = np.loadtxt('face_embedding.txt', dtype=np.float32)
-
-        received_samples = int(x_array.size / 512)
-        x_array = x_array.reshape(received_samples, 512)
-        x_mean = x_array.mean(axis=0)
-        x_mean = x_mean.astype(np.float32)
-        x_mean_bytes = x_mean.tobytes()
-
-        r.hset(name='vattend:register', key=key, value=x_mean_bytes)
-        os.remove('face_embedding.txt')
-        self.reset()
-        return True
+        if embeddings_list:
+            x_mean = np.mean(embeddings_list, axis=0).astype(np.float32)
+            x_mean_bytes = x_mean.tobytes()
+            r.hset(name='vattend:register', key=key, value=x_mean_bytes)
+            self.reset()
+            embeddings_list.clear()  # Clear the global list
+            return True
+        else:
+            return 'file_false'
 
 def register():
     registration_form = RegistrationForm()
@@ -88,9 +88,6 @@ def register():
     def video_callback_func(frame):
         img = frame.to_ndarray(format='bgr24') # 3d array bgr
         reg_img, embedding = registration_form.get_embedding(img)
-        if embedding is not None:
-            with open('face_embedding.txt', mode='ab') as f:
-                np.savetxt(f, embedding)
         return av.VideoFrame.from_ndarray(reg_img, format='bgr24')
 
     webrtc_streamer(key='registration', video_frame_callback=video_callback_func)
@@ -102,7 +99,7 @@ def register():
         elif return_val == 'name_false':
             st.error('Please enter the name: Name cannot be empty or spaces')
         elif return_val == 'file_false':
-            st.error('face_embedding.txt is not found. Please refresh the page and execute again.')
+            st.error('No face detected. Please try again.')
 
 # Prediction
 def ml_search_algorithm(dataframe,feature_column,test_vector,
@@ -216,6 +213,8 @@ def mark_attendance():
         last_out_time = times.get('out_time')
         
         if last_out_time and last_in_time and last_out_time < last_in_time:
+            r.hset('vattend:status', f'{regNo}@{name}', 'present')
+        if last_in_time and not last_out_time:
             r.hset('vattend:status', f'{regNo}@{name}', 'present')
         else:
             r.hset('vattend:status', f'{regNo}@{name}', 'absent')
