@@ -149,44 +149,9 @@ class RealTimePred:
                 encoded_data.append(concat_string)
 
         if len(encoded_data) > 0:
-            r.lpush(f'vattend:{self.camera}', *encoded_data)
+            r.rpush(f'vattend:{self.camera}', *encoded_data)
 
         self.reset_dict()
-
-    def mark_attendance(self):
-        # Get the logs from the database
-        logs = r.lrange('vattend:logs', 0, -1)
-        
-        # Get the current time
-        current_time = datetime.now()
-        # Set the cutoff time
-        cutoff_time = datetime(current_time.year, current_time.month, current_time.day, 22, 0, 0)
-
-        # Get the list of registered persons
-        registered_keys = r.hkeys('vattend:register')
-        registered_persons = [key.decode('utf-8') for key in registered_keys]
-
-        # Iterate through logs and mark attendance
-        for log in logs:
-            log_str = log.decode('utf-8')
-            regNo, name, log_time_str = log_str.split('@')
-            log_time = datetime.strptime(log_time_str, '%Y-%m-%d %H:%M:%S.%f')
-            if log_time <= cutoff_time:
-                r.hset('vattend:status', f'{regNo}@{name}', 'present')
-            else:
-                r.hset('vattend:status', f'{regNo}@{name}', 'absent')
-
-        # Mark registered persons who are not in logs or last timestamp > 10pm as absent
-        for person_key in registered_persons:
-            regNo, name = person_key.split('@')
-            last_log_time = None
-            for log in logs:
-                log_str = log.decode('utf-8')
-                log_regNo, log_name, log_time_str = log_str.split('@')
-                if log_regNo == regNo and log_name == name:
-                    last_log_time = datetime.strptime(log_time_str, '%Y-%m-%d %H:%M:%S.%f')
-            if last_log_time is None or last_log_time > cutoff_time:
-                r.hset('vattend:status', f'{regNo}@{name}', 'absent')
                 
     def face_prediction(self, test_image, dataframe, feature_column, name_regNo=['RegNo', 'Name'], thresh=0.5):
         current_time = str(datetime.now())
@@ -219,7 +184,53 @@ class RealTimePred:
             self.logs['name'].append(person_name)
             self.logs['current_time'].append(current_time)
 
-        # Call method to mark attendance
-        self.mark_attendance()
-
         return test_copy
+
+def mark_attendance():
+    incoming_logs = r.lrange('vattend:incoming', 0, -1)
+    outgoing_logs = r.lrange('vattend:outgoing', 0, -1)
+
+    registered_keys = r.hkeys('vattend:register')
+    registered_persons = [key.decode('utf-8') for key in registered_keys]
+
+    last_times = {}
+
+    for log in incoming_logs:
+        log_str = log.decode('utf-8')
+        regNo, name, log_time_str = log_str.split('@')
+        log_time = datetime.strptime(log_time_str, '%Y-%m-%d %H:%M:%S.%f')
+        last_times[(regNo, name)] = {'in_time': log_time}
+
+    for log in outgoing_logs:
+        log_str = log.decode('utf-8')
+        regNo, name, log_time_str = log_str.split('@')
+        log_time = datetime.strptime(log_time_str, '%Y-%m-%d %H:%M:%S.%f')
+        if (regNo, name) in last_times:
+            last_times[(regNo, name)]['out_time'] = log_time
+        else:
+            last_times[(regNo, name)] = {'out_time': log_time}  
+
+    for person_key, times in last_times.items():
+        regNo, name = person_key
+        last_in_time = times.get('in_time')
+        last_out_time = times.get('out_time')
+        
+        if last_out_time and last_in_time and last_out_time < last_in_time:
+            r.hset('vattend:status', f'{regNo}@{name}', 'present')
+        else:
+            r.hset('vattend:status', f'{regNo}@{name}', 'absent')
+
+    for person_key in registered_persons:
+        regNo, name = person_key.split('@')
+        if (regNo, name) not in last_times:
+            r.hset('vattend:status', f'{regNo}@{name}', 'present')
+
+
+def retrieve_status(name):
+    status_dict = r.hgetall(name)
+    status_list = []
+    for key, value in status_dict.items():
+        regNo_name = key.decode('utf-8')
+        status = value.decode('utf-8')
+        status_list.append({'RegNo@Name': regNo_name, 'Status': status})
+    return status_list
