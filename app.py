@@ -71,7 +71,7 @@ class RegistrationForm:
             embeddings_list.append(embeddings)  # Add to global list
         return frame, embeddings
 
-    def save_data_in_redis_db(self, name, regNo):
+    def save_data_in_redis_db(self, name, regNo, phNumber):
         if name is not None:
             if name.strip() != '':
                 key = f'{regNo}@{name}'
@@ -84,6 +84,7 @@ class RegistrationForm:
             x_mean = np.mean(embeddings_list, axis=0).astype(np.float32)
             x_mean_bytes = x_mean.tobytes()
             r.hset(name='vattend:register', key=key, value=x_mean_bytes)
+            r.hset(name='vattend:phNumber', key=key, value=phNumber)  # Save phone number to new Redis hash table
             self.reset()
             embeddings_list.clear()  # Clear the global list
             return True
@@ -96,6 +97,7 @@ def register():
     # form
     sname = st.text_input(label='Name',placeholder='Full Name')
     regNo = st.text_input(label='RegNo', placeholder="Registration Number")
+    phNumber = st.text_input(label='Phone Number', placeholder="Phone Number")  # New phone number field
 
     def video_callback_func(frame):
         img = frame.to_ndarray(format='bgr24') # 3d array bgr
@@ -105,13 +107,13 @@ def register():
     webrtc_streamer(key='registration', rtc_configuration={"iceServers": token.ice_servers}, video_frame_callback=video_callback_func)
 
     if st.button('Submit'):
-        return_val = registration_form.save_data_in_redis_db(sname, regNo)
+        return_val = registration_form.save_data_in_redis_db(sname, regNo, phNumber)
         if return_val == True:
             st.success(f"{regNo} registered successfully")
         elif return_val == 'name_false':
             st.error('Please enter the name: Name cannot be empty or spaces')
         elif return_val == 'file_false':
-            st.error('No face detected. Please try again.')
+            st.error('No face detected. Please try again.')
 
 # Prediction
 def ml_search_algorithm(dataframe,feature_column,test_vector,

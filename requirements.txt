@@ -11,3 +11,4 @@ insightface
 onnxruntime
 python-dotenv
 twilio
+vonage
