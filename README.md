@@ -6,6 +6,9 @@ Traditional attendance methods, such as manual sign-in sheets or ID card tapping
 
 V-Attend is an automated attendance management system. It utilizes facial recognition technology to mark attendance and provides real-time reports on attendance status.
 
+![image](https://github.com/Precoder365/V-Attend/assets/91544325/ed3d8687-12b6-4826-8e41-19eacea5049a)
+
+
 ## Features
 
 - **Facial Recognition:** Utilizes facial recognition technology to identify individuals and mark their attendance.
