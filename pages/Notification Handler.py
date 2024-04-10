@@ -63,5 +63,5 @@ def main():
         send_notifications(absentee_status, absentee_phones)
         st.success("Notifications sent successfully!")
 
-if _name_ == "_main_":
+if __name__ == "_main_":
     main()
