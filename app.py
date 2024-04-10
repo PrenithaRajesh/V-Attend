@@ -165,7 +165,7 @@ class RealTimePred:
         self.reset_dict()
                 
     def face_prediction(self, test_image, dataframe, feature_column, name_regNo=['RegNo', 'Name'], thresh=0.5):
-        current_time = str(convert_utc_to_ist(datetime.now()))
+        current_time = str(datetime.now())
 
         results = faceapp.get(test_image)
         test_copy = test_image.copy()
