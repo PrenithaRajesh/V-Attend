@@ -94,17 +94,25 @@ class RegistrationForm:
 def register():
     registration_form = RegistrationForm()
 
-    # form
-    sname = st.text_input(label='Name',placeholder='Full Name')
+    sname = st.text_input(label='Name', placeholder='Full Name')
     regNo = st.text_input(label='RegNo', placeholder="Registration Number")
-    phNumber = st.text_input(label='Phone Number', placeholder="Phone Number")  # New phone number field
+    phNumber = st.text_input(label='Phone Number', placeholder="Phone Number")
+    input_type = st.radio("Select input type:", ("Image", "Video"))
 
-    def video_callback_func(frame):
-        img = frame.to_ndarray(format='bgr24') # 3d array bgr
-        reg_img, embedding = registration_form.get_embedding(img)
-        return av.VideoFrame.from_ndarray(reg_img, format='bgr24')
+    if input_type == "Image":
+        file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
+        if file is not None:
+            img = cv2.imdecode(np.fromstring(file.read(), np.uint8), 1)
+            reg_img, embedding = registration_form.get_embedding(img)
+            st.image(reg_img, channels="BGR")
 
-    webrtc_streamer(key='registration', rtc_configuration={"iceServers": token.ice_servers}, video_frame_callback=video_callback_func)
+    elif input_type == "Video":
+        def video_callback_func(frame):
+            img = frame.to_ndarray(format='bgr24')
+            reg_img, embedding = registration_form.get_embedding(img)
+            return av.VideoFrame.from_ndarray(reg_img, format='bgr24')
+
+        webrtc_streamer(key='registration', rtc_configuration={"iceServers": token.ice_servers}, video_frame_callback=video_callback_func)
 
     if st.button('Submit'):
         return_val = registration_form.save_data_in_redis_db(sname, regNo, phNumber)
@@ -113,7 +121,7 @@ def register():
         elif return_val == 'name_false':
             st.error('Please enter the name: Name cannot be empty or spaces')
         elif return_val == 'file_false':
-            st.error('No face detected. Please try again.')
+            st.error('No face detected. Please try again.')
 
 # Prediction
 def ml_search_algorithm(dataframe,feature_column,test_vector,
