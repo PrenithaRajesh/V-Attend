@@ -3,7 +3,7 @@ import redis
 import os
 from dotenv import load_dotenv
 
-# FEATURE FOR CLASS ATTENDANCE
+# FEATURE FOR HOSTEL ATTENDANCE
 
 st.subheader('Add RegNo of students on leave')
 
@@ -16,7 +16,7 @@ password = os.getenv('REDIS_PASSWORD')
 r = redis.StrictRedis(host=hostname, port=portnumber, password=password)
 
 def add_to_leave_list(reg_numbers):
-    r.lpush('vattend:onDuty', *reg_numbers)
+    r.lpush('vattend:onLeave', *reg_numbers)
 
 def main():
     leave_reg_numbers = st.text_input('Enter registration numbers separated by commas (e.g., ABC123,XYZ456):')
