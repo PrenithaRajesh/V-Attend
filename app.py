@@ -66,7 +66,7 @@ class RegistrationForm:
             x1, y1, x2, y2 = res['bbox'].astype(int)
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
             text = f"samples = {self.sample}"
-            cv2.putText(frame, text, (x1, y1), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 0), 2)
+            # cv2.putText(frame, text, (x1, y1), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 0), 2)
             embeddings = res['embedding']
             embeddings_list.append(embeddings)  # Add to global list
         return frame, embeddings
@@ -302,3 +302,73 @@ def mark_on_leave():
         status_key = next((key.decode('utf-8') for key in r.hkeys('vattend:status') if key.decode('utf-8').startswith(reg_number)), None)
         if status_key:
             r.hset('vattend:status', status_key, 'onLeave')
+
+class PredictionFromImage:
+    def __init__(self):
+        self.attendance_log = {}
+
+    def face_prediction(self, test_image, dataframe, feature_column, name_regNo=['RegNo', 'Name'], thresh=0.5):
+        results = faceapp.get(test_image)
+        test_copy = test_image.copy()
+
+        recognized = False  
+        for res in results:
+            x1, y1, x2, y2 = res['bbox'].astype(int)
+            embeddings = res['embedding']
+            person_name, person_regNo = ml_search_algorithm(dataframe, feature_column, test_vector=embeddings,
+                                                            name_regNo=name_regNo, thresh=thresh)
+
+            if person_name != 'Unknown':
+                recognized = True
+                self.attendance_log[f"{person_regNo}@{person_name}"] = "present"
+
+            if person_name == 'Unknown':
+                color = (0, 0, 255)  
+            else:
+                color = (0, 255, 0)  
+
+            cv2.rectangle(test_copy, (x1, y1), (x2, y2), color)
+
+        if not recognized:
+            for person_key in self.attendance_log:
+                self.attendance_log[person_key] = "absent"
+
+        return test_copy
+
+    def mark_attendance(self):
+        current_attendance = r.hgetall("vattend:classAttendance")
+        registered_keys = r.hkeys('vattend:register')
+        registered_persons = [key.decode('utf-8') for key in registered_keys]
+
+        for person_key in registered_persons:
+            if person_key not in self.attendance_log and person_key not in current_attendance:
+                current_attendance[person_key] = "absent"
+        current_attendance.update(self.attendance_log)
+        r.hmset("vattend:classAttendance", current_attendance)
+        self.attendance_log.clear()
+
+import streamlit as st
+import redis
+
+def display_attendance_table():
+    attendance_data = r.hgetall("vattend:classAttendance")
+
+    regnos = []
+    names = []
+    statuses = []
+
+    for key, value in attendance_data.items():
+        key_str = key.decode('utf-8')
+        regno, name = key_str.split('@')
+        status = value.decode('utf-8')
+        regnos.append(regno)
+        names.append(name)
+        statuses.append(status)
+
+    attendance_df = pd.DataFrame({'RegNo': regnos, 'Name': names, 'Status': statuses})
+    st.write("Attendance Table")
+    st.write(attendance_df)
+
+
+
+
