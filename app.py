@@ -27,7 +27,7 @@ token = client.tokens.create()
 r = redis.StrictRedis(host=hostname, port=portnumber, password=password)
 
 from insightface.app import FaceAnalysis
-faceapp = FaceAnalysis(name='buffalo_l',root='./models',providers=['CPUExecutionProvider'])
+faceapp = FaceAnalysis(name='buffalo_l',root='.\models',providers=['CPUExecutionProvider'])
 faceapp.prepare(ctx_id=0, det_size=(640, 640))
 
 # Retrive Data from database

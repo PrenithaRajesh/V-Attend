@@ -14,28 +14,34 @@ def send_notifications(absentee_status, absentee_phones):
     client = vonage.Client(key=api_key, secret=api_secret)
     sms_client = vonage.Sms(client)
 
+    absentees = []
+
     for key, status in absentee_status.items():
-        name_regNo = key.split('@')
-        name = name_regNo[0]
-        regNo = name_regNo[1]
-        phNumber = absentee_phones.get(key, None)
-        print(name)
-        print(phNumber)
-        if phNumber:
-            # Add +91 to phone number
-            phNumber_with_country_code = '91' + phNumber
+        # Check if the status is 'absent'
+        if status.lower() == 'absent':
+            name_regNo = key.split('@')
+            name = name_regNo[0]
+            regNo = name_regNo[1]
+            phNumber = absentee_phones.get(key, None)
+            if phNumber:
+                # Add +91 to phone number
+                phNumber_with_country_code = '91' + phNumber
 
-            # Compose SMS message
-            message_body = f"Dear {name}, you are marked absent today. Please contact your supervisor if there's any issue."
+                absentees.append((regNo, phNumber_with_country_code))
 
-            # Send SMS message
-            response = sms_client.send_message({
-                'from': vonage_phone_number,
-                'to': phNumber_with_country_code,
-                'text': message_body
-            })
+                # Compose SMS message
+                message_body = f"Dear {name}, you are marked absent today. Please contact your supervisor if there's any issue."
 
-            st.write(f"Notification sent to {name} ({phNumber_with_country_code})")
+                # Send SMS message
+                response = sms_client.send_message({
+                    'from': vonage_phone_number,
+                    'to': phNumber_with_country_code,
+                    'text': message_body
+                })
+
+                st.write(f"Notification sent to {name} ({phNumber_with_country_code})")
+
+    return absentees
 
 # Streamlit app
 def main():
@@ -54,8 +60,24 @@ def main():
     absentee_status = {key.decode('utf-8'): value.decode('utf-8') for key, value in absentee_status.items()}
     absentee_phones = {key.decode('utf-8'): value.decode('utf-8') for key, value in absentee_phones.items()}
 
-    st.write("Absentee Status:", absentee_status)  # Debugging
-    st.write("Absentee Phones:", absentee_phones)  # Debugging
+    # st.write("Absentee Status:", absentee_status)  # Debugging
+    # st.write("Absentee Phones:", absentee_phones)  # Debugging
+
+    # Display absentees in a table
+    absentees = []
+    for key, status in absentee_status.items():
+        if status.lower() == 'absent':
+            name_regNo = key.split('@')
+            name = name_regNo[0]
+            regNo = name_regNo[1]
+            phNumber = absentee_phones.get(key, None)
+            if phNumber:
+                phNumber_with_country_code = '91' + phNumber
+                absentees.append((regNo, phNumber_with_country_code))
+    if absentees:
+        st.write("Absentees:")
+        absentees_with_header = [("RegNo", "Phone Number")] + absentees
+        st.table(absentees_with_header)
 
     # Button to trigger sending notifications
     if st.button('Send Notifications'):
